@@ -3,402 +3,1206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>密码生成器</title>
+    <title>多功能工作台</title>
     <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #475569;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* 加载动画 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-primary);
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
         }
-        .container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 40px;
-            width: 100%;
-            max-width: 480px;
+
+        .loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
         }
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--bg-card);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 骨架屏 */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-secondary) 50%, var(--bg-card) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* 布局 */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 侧边导航 */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-header .logo-icon {
             font-size: 28px;
         }
-        .result-box {
-            background: #f8f9fa;
-            border: 2px solid #e9ecef;
+
+        .nav-menu {
+            padding: 16px 12px;
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 4px;
+            color: var(--text-secondary);
+        }
+
+        .nav-item:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .nav-item .nav-icon {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .nav-item .nav-text {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-header h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-header p {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        /* 工具页面 */
+        .tool-page {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tool-page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 卡片 */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 密码生成器样式 */
+        .password-display-box {
+            background: var(--bg-primary);
+            border: 2px solid var(--border);
             border-radius: 12px;
             padding: 20px;
-            margin-bottom: 24px;
             position: relative;
+            margin-bottom: 20px;
         }
-        .password-display {
+
+        .password-text {
             font-family: 'Courier New', monospace;
-            font-size: 20px;
+            font-size: 22px;
             word-break: break-all;
-            color: #333;
-            min-height: 28px;
+            color: var(--text-primary);
+            min-height: 32px;
+            padding-right: 80px;
         }
+
         .copy-btn {
             position: absolute;
             right: 12px;
             top: 50%;
             transform: translateY(-50%);
-            background: #667eea;
+            background: var(--accent);
             color: white;
             border: none;
             border-radius: 8px;
             padding: 8px 16px;
             cursor: pointer;
             font-size: 14px;
-            transition: background 0.2s;
+            font-weight: 500;
+            transition: all 0.2s ease;
         }
+
         .copy-btn:hover {
-            background: #5568d3;
+            background: var(--accent-hover);
+            transform: translateY(-50%) scale(1.05);
         }
+
         .copy-btn:active {
             transform: translateY(-50%) scale(0.95);
         }
+
+        .strength-bar-container {
+            margin-top: 12px;
+        }
+
         .strength-bar {
             height: 6px;
             border-radius: 3px;
-            margin-top: 12px;
-            transition: all 0.3s;
-            background: #e9ecef;
+            background: var(--bg-card);
+            overflow: hidden;
+            transition: all 0.3s ease;
         }
-        .strength-bar.weak {
-            background: #dc3545;
-            width: 33%;
+
+        .strength-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+            width: 0;
         }
-        .strength-bar.medium {
-            background: #ffc107;
-            width: 66%;
-        }
-        .strength-bar.strong {
-            background: #28a745;
-            width: 100%;
-        }
+
+        .strength-bar-fill.weak { background: var(--danger); width: 33%; }
+        .strength-bar-fill.medium { background: var(--warning); width: 66%; }
+        .strength-bar-fill.strong { background: var(--success); width: 100%; }
+
         .strength-text {
             text-align: right;
-            font-size: 12px;
+            font-size: 13px;
             margin-top: 6px;
-            color: #666;
+            color: var(--text-secondary);
         }
+
         .option-group {
             margin-bottom: 20px;
         }
+
         .option-label {
             display: block;
-            margin-bottom: 8px;
-            color: #555;
+            margin-bottom: 10px;
+            color: var(--text-secondary);
             font-size: 15px;
             font-weight: 500;
         }
+
         .length-control {
             display: flex;
             align-items: center;
             gap: 16px;
         }
+
         input[type="range"] {
             flex: 1;
             height: 6px;
             -webkit-appearance: none;
             appearance: none;
-            background: #e9ecef;
+            background: var(--bg-card);
             border-radius: 3px;
             outline: none;
         }
+
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #667eea;
+            background: var(--accent);
             cursor: pointer;
-            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+            transition: transform 0.2s ease;
         }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
         input[type="range"]::-moz-range-thumb {
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #667eea;
+            background: var(--accent);
             cursor: pointer;
             border: none;
-            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
         }
+
         .length-value {
-            font-size: 18px;
-            font-weight: 600;
-            color: #667eea;
-            min-width: 32px;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent);
+            min-width: 36px;
             text-align: center;
         }
+
         .checkbox-group {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
         }
+
         .checkbox-item {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             cursor: pointer;
-            padding: 10px;
-            border-radius: 8px;
-            transition: background 0.2s;
+            padding: 12px;
+            border-radius: 10px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
         }
+
         .checkbox-item:hover {
-            background: #f8f9fa;
+            border-color: var(--accent);
         }
+
         input[type="checkbox"] {
             width: 20px;
             height: 20px;
-            accent-color: #667eea;
+            accent-color: var(--accent);
             cursor: pointer;
         }
+
         .checkbox-item span {
             font-size: 14px;
-            color: #555;
+            color: var(--text-secondary);
         }
+
         .generate-btn {
             width: 100%;
             padding: 16px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
             color: white;
             border: none;
             border-radius: 12px;
             font-size: 18px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.2s ease;
             margin-top: 10px;
         }
+
         .generate-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
         }
+
         .generate-btn:active {
-            transform: translateY(0);
+            transform: translateY(0) scale(0.98);
         }
-        .toast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%) translateY(-100px);
-            background: #333;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 14px;
-            opacity: 0;
-            transition: all 0.3s;
-            z-index: 1000;
-        }
-        .toast.show {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-        }
+
         .error-msg {
-            color: #dc3545;
+            color: var(--danger);
             font-size: 13px;
             margin-top: 8px;
             display: none;
         }
+
         .error-msg.show {
             display: block;
+            animation: shake 0.3s ease;
         }
-        @media (max-width: 480px) {
-            .container {
-                padding: 24px;
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* 抽奖工具样式 */
+        .participants-input {
+            width: 100%;
+            min-height: 120px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            color: var(--text-primary);
+            font-size: 15px;
+            resize: vertical;
+            margin-bottom: 16px;
+            transition: border-color 0.2s ease;
+        }
+
+        .participants-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .participants-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .draw-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .draw-option {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .draw-option label {
+            display: block;
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .draw-option input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-size: 24px;
+            font-weight: 700;
+            text-align: center;
+            outline: none;
+        }
+
+        .draw-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 20px;
+        }
+
+        .draw-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        .draw-btn:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .draw-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .draw-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .result-item {
+            background: var(--bg-primary);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            animation: popIn 0.4s ease;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .result-item .result-rank {
+            font-size: 12px;
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .result-item .result-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* Toast 通知 */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: var(--shadow-lg);
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            min-width: 280px;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger);
+        }
+
+        .toast.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        .toast-icon {
+            font-size: 20px;
+        }
+
+        .toast-message {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        /* 装饰图片 */
+        .hero-image {
+            width: 100%;
+            max-width: 400px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            opacity: 0.9;
+        }
+
+        /* 移动端适配 */
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 8px;
+            z-index: 100;
+        }
+
+        .mobile-nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px;
+            border-radius: 10px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .mobile-nav-item.active {
+            color: var(--accent);
+        }
+
+        .mobile-nav-item .nav-icon {
+            font-size: 22px;
+        }
+
+        .mobile-nav-item .nav-text {
+            font-size: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
             }
-            h1 {
-                font-size: 24px;
+
+            .main-content {
+                padding: 20px;
+                padding-bottom: 80px;
             }
-            .password-display {
-                font-size: 16px;
+
+            .mobile-nav {
+                display: flex;
             }
+
             .checkbox-group {
                 grid-template-columns: 1fr;
             }
+
+            .draw-options {
+                grid-template-columns: 1fr;
+            }
+
+            .draw-results {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* 快捷键提示 */
+        .shortcut-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-left: 8px;
+        }
+
+        .shortcut-hint kbd {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-family: monospace;
+            font-size: 11px;
+        }
+
+        /* 数字滚动动画 */
+        .number-roll {
+            display: inline-block;
+            animation: numberRoll 0.5s ease;
+        }
+
+        @keyframes numberRoll {
+            0% { transform: translateY(-20px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🔐 密码生成器</h1>
-        
-        <div class="result-box">
-            <div class="password-display" id="passwordDisplay">点击生成密码</div>
-            <button class="copy-btn" id="copyBtn">复制</button>
-            <div class="strength-bar" id="strengthBar"></div>
-            <div class="strength-text" id="strengthText"></div>
-        </div>
-
-        <div class="option-group">
-            <label class="option-label">密码长度</label>
-            <div class="length-control">
-                <input type="range" id="lengthSlider" min="4" max="64" value="16">
-                <span class="length-value" id="lengthValue">16</span>
-            </div>
-        </div>
-
-        <div class="option-group">
-            <label class="option-label">包含字符</label>
-            <div class="checkbox-group">
-                <label class="checkbox-item">
-                    <input type="checkbox" id="uppercase" checked>
-                    <span>大写字母 (A-Z)</span>
-                </label>
-                <label class="checkbox-item">
-                    <input type="checkbox" id="lowercase" checked>
-                    <span>小写字母 (a-z)</span>
-                </label>
-                <label class="checkbox-item">
-                    <input type="checkbox" id="numbers" checked>
-                    <span>数字 (0-9)</span>
-                </label>
-                <label class="checkbox-item">
-                    <input type="checkbox" id="symbols">
-                    <span>特殊符号 (!@#$)</span>
-                </label>
-            </div>
-            <div class="error-msg" id="errorMsg">至少选择一种字符类型</div>
-        </div>
-
-        <button class="generate-btn" id="generateBtn">生成密码</button>
+    <!-- 加载动画 -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
     </div>
 
-    <div class="toast" id="toast">已复制到剪贴板</div>
+    <!-- Toast 容器 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="app-container">
+        <!-- 侧边导航 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1><span class="logo-icon">🛠️</span> 多功能工作台</h1>
+            </div>
+            <nav class="nav-menu">
+                <div class="nav-item active" data-tool="password">
+                    <span class="nav-icon">🔐</span>
+                    <span class="nav-text">密码生成器</span>
+                </div>
+                <div class="nav-item" data-tool="draw">
+                    <span class="nav-icon">🎲</span>
+                    <span class="nav-text">随机抽奖</span>
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                按 <kbd>Ctrl</kbd>+<kbd>1</kbd> 切换工具
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 密码生成器页面 -->
+            <div class="tool-page active" id="passwordPage">
+                <div class="page-header">
+                    <h2>🔐 密码生成器 <span class="shortcut-hint"><kbd>Ctrl</kbd>+<kbd>G</kbd> 生成</span></h2>
+                    <p>生成安全、随机的密码，支持自定义长度和字符类型</p>
+                </div>
+
+                <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20modern%20digital%20security%20shield%20with%20glowing%20blue%20circuit%20patterns%2C%20floating%20password%20characters%2C%20dark%20background%2C%20futuristic%20cybersecurity%20theme%2C%20clean%20minimalist%20design&image_size=landscape_16_9" alt="密码安全" class="hero-image" onerror="this.style.display='none'">
+
+                <div class="card">
+                    <div class="password-display-box">
+                        <div class="password-text" id="passwordDisplay">点击生成密码</div>
+                        <button class="copy-btn" id="copyBtn">复制</button>
+                        <div class="strength-bar-container">
+                            <div class="strength-bar">
+                                <div class="strength-bar-fill" id="strengthBarFill"></div>
+                            </div>
+                            <div class="strength-text" id="strengthText"></div>
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <label class="option-label">密码长度</label>
+                        <div class="length-control">
+                            <input type="range" id="lengthSlider" min="4" max="64" value="16">
+                            <span class="length-value" id="lengthValue">16</span>
+                        </div>
+                    </div>
+
+                    <div class="option-group">
+                        <label class="option-label">包含字符</label>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="uppercase" checked>
+                                <span>大写字母 (A-Z)</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="lowercase" checked>
+                                <span>小写字母 (a-z)</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="numbers" checked>
+                                <span>数字 (0-9)</span>
+                            </label>
+                            <label class="checkbox-item">
+                                <input type="checkbox" id="symbols">
+                                <span>特殊符号 (!@#$)</span>
+                            </label>
+                        </div>
+                        <div class="error-msg" id="errorMsg">至少选择一种字符类型</div>
+                    </div>
+
+                    <button class="generate-btn" id="generateBtn">生成密码</button>
+                </div>
+            </div>
+
+            <!-- 随机抽奖页面 -->
+            <div class="tool-page" id="drawPage">
+                <div class="page-header">
+                    <h2>🎲 随机抽奖 <span class="shortcut-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 开始</span></h2>
+                    <p>输入参与者名单，随机抽取幸运儿</p>
+                </div>
+
+                <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=A%20colorful%20raffle%20drum%20with%20glowing%20tickets%20floating%20around%2C%20confetti%20and%20sparkles%2C%20dark%20background%2C%20celebration%20atmosphere%2C%20modern%20flat%20design%20illustration&image_size=landscape_16_9" alt="随机抽奖" class="hero-image" onerror="this.style.display='none'">
+
+                <div class="card">
+                    <div class="card-title">📝 参与者名单</div>
+                    <textarea class="participants-input" id="participantsInput" placeholder="输入参与者姓名，每行一个&#10;例如：&#10;张三&#10;李四&#10;王五"></textarea>
+
+                    <div class="draw-options">
+                        <div class="draw-option">
+                            <label>抽取人数</label>
+                            <input type="number" id="drawCount" value="1" min="1" max="100">
+                        </div>
+                        <div class="draw-option">
+                            <label>当前人数</label>
+                            <input type="text" id="participantCount" value="0" readonly>
+                        </div>
+                    </div>
+
+                    <button class="draw-btn" id="drawBtn">🎯 开始抽奖</button>
+
+                    <div class="card-title">🏆 抽奖结果</div>
+                    <div class="draw-results" id="drawResults"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 移动端底部导航 -->
+    <nav class="mobile-nav">
+        <div class="mobile-nav-item active" data-tool="password">
+            <span class="nav-icon">🔐</span>
+            <span class="nav-text">密码生成</span>
+        </div>
+        <div class="mobile-nav-item" data-tool="draw">
+            <span class="nav-icon">🎲</span>
+            <span class="nav-text">随机抽奖</span>
+        </div>
+    </nav>
 
     <script>
-        const passwordDisplay = document.getElementById('passwordDisplay');
-        const copyBtn = document.getElementById('copyBtn');
-        const strengthBar = document.getElementById('strengthBar');
-        const strengthText = document.getElementById('strengthText');
-        const lengthSlider = document.getElementById('lengthSlider');
-        const lengthValue = document.getElementById('lengthValue');
-        const uppercase = document.getElementById('uppercase');
-        const lowercase = document.getElementById('lowercase');
-        const numbers = document.getElementById('numbers');
-        const symbols = document.getElementById('symbols');
-        const generateBtn = document.getElementById('generateBtn');
-        const toast = document.getElementById('toast');
-        const errorMsg = document.getElementById('errorMsg');
+        // ==================== 全局服务 ====================
+        const App = {
+            currentTool: 'password',
 
-        const CHAR_SETS = {
-            uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-            lowercase: 'abcdefghijklmnopqrstuvwxyz',
-            numbers: '0123456789',
-            symbols: '!@#$%^&*()_+-=[]{}|;:,.<>?'
+            init() {
+                this.hideLoading();
+                this.bindNavigation();
+                this.bindShortcuts();
+                PasswordGenerator.init();
+                RandomDraw.init();
+            },
+
+            hideLoading() {
+                setTimeout(() => {
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                }, 800);
+            },
+
+            switchTool(tool) {
+                if (this.currentTool === tool) return;
+
+                // 更新导航状态
+                document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(item => {
+                    item.classList.toggle('active', item.dataset.tool === tool);
+                });
+
+                // 切换页面
+                document.querySelectorAll('.tool-page').forEach(page => {
+                    page.classList.remove('active');
+                });
+                document.getElementById(tool + 'Page').classList.add('active');
+
+                this.currentTool = tool;
+            },
+
+            bindNavigation() {
+                document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        this.switchTool(item.dataset.tool);
+                    });
+                });
+            },
+
+            bindShortcuts() {
+                document.addEventListener('keydown', (e) => {
+                    if (!e.ctrlKey) return;
+
+                    switch(e.key) {
+                        case '1':
+                            e.preventDefault();
+                            this.switchTool('password');
+                            break;
+                        case '2':
+                            e.preventDefault();
+                            this.switchTool('draw');
+                            break;
+                    }
+                });
+            }
         };
 
-        lengthSlider.addEventListener('input', () => {
-            lengthValue.textContent = lengthSlider.value;
+        // ==================== Toast 服务 ====================
+        const Toast = {
+            container: document.getElementById('toastContainer'),
+
+            show(message, type = 'success', duration = 3000) {
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+
+                const icons = {
+                    success: '✅',
+                    error: '❌',
+                    warning: '⚠️'
+                };
+
+                toast.innerHTML = `
+                    <span class="toast-icon">${icons[type]}</span>
+                    <span class="toast-message">${message}</span>
+                `;
+
+                this.container.appendChild(toast);
+
+                // 触发动画
+                requestAnimationFrame(() => {
+                    toast.classList.add('show');
+                });
+
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, duration);
+            }
+        };
+
+        // ==================== 密码生成器 ====================
+        const PasswordGenerator = {
+            elements: {},
+
+            CHAR_SETS: {
+                uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+                lowercase: 'abcdefghijklmnopqrstuvwxyz',
+                numbers: '0123456789',
+                symbols: '!@#$%^&*()_+-=[]{}|;:,.<>?'
+            },
+
+            init() {
+                this.elements = {
+                    display: document.getElementById('passwordDisplay'),
+                    copyBtn: document.getElementById('copyBtn'),
+                    strengthBar: document.getElementById('strengthBarFill'),
+                    strengthText: document.getElementById('strengthText'),
+                    lengthSlider: document.getElementById('lengthSlider'),
+                    lengthValue: document.getElementById('lengthValue'),
+                    uppercase: document.getElementById('uppercase'),
+                    lowercase: document.getElementById('lowercase'),
+                    numbers: document.getElementById('numbers'),
+                    symbols: document.getElementById('symbols'),
+                    generateBtn: document.getElementById('generateBtn'),
+                    errorMsg: document.getElementById('errorMsg')
+                };
+
+                this.bindEvents();
+                this.generate();
+            },
+
+            bindEvents() {
+                this.elements.lengthSlider.addEventListener('input', () => {
+                    this.elements.lengthValue.textContent = this.elements.lengthSlider.value;
+                });
+
+                this.elements.generateBtn.addEventListener('click', () => this.generate());
+
+                this.elements.copyBtn.addEventListener('click', () => this.copy());
+
+                // 快捷键
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey && e.key === 'g' && App.currentTool === 'password') {
+                        e.preventDefault();
+                        this.generate();
+                    }
+                });
+            },
+
+            getSelectedChars() {
+                let chars = '';
+                if (this.elements.uppercase.checked) chars += this.CHAR_SETS.uppercase;
+                if (this.elements.lowercase.checked) chars += this.CHAR_SETS.lowercase;
+                if (this.elements.numbers.checked) chars += this.CHAR_SETS.numbers;
+                if (this.elements.symbols.checked) chars += this.CHAR_SETS.symbols;
+                return chars;
+            },
+
+            generate() {
+                const chars = this.getSelectedChars();
+                if (!chars) {
+                    this.elements.errorMsg.classList.add('show');
+                    Toast.show('至少选择一种字符类型', 'warning');
+                    return null;
+                }
+                this.elements.errorMsg.classList.remove('show');
+
+                const length = parseInt(this.elements.lengthSlider.value);
+                const array = new Uint32Array(length);
+                crypto.getRandomValues(array);
+
+                let password = '';
+                for (let i = 0; i < length; i++) {
+                    password += chars[array[i] % chars.length];
+                }
+
+                // 动画效果
+                this.animatePasswordReveal(password);
+                this.updateStrength(password);
+
+                return password;
+            },
+
+            animatePasswordReveal(password) {
+                const display = this.elements.display;
+                let index = 0;
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+
+                const interval = setInterval(() => {
+                    if (index >= password.length) {
+                        clearInterval(interval);
+                        display.textContent = password;
+                        return;
+                    }
+
+                    let temp = password.substring(0, index);
+                    for (let i = index; i < password.length; i++) {
+                        temp += chars[Math.floor(Math.random() * chars.length)];
+                    }
+                    display.textContent = temp;
+                    index++;
+                }, 30);
+            },
+
+            evaluateStrength(password) {
+                let score = 0;
+                if (password.length >= 8) score++;
+                if (password.length >= 12) score++;
+                if (password.length >= 16) score++;
+                if (/[A-Z]/.test(password)) score++;
+                if (/[a-z]/.test(password)) score++;
+                if (/[0-9]/.test(password)) score++;
+                if (/[^A-Za-z0-9]/.test(password)) score++;
+
+                if (score <= 3) return { level: 'weak', text: '强度: 弱' };
+                if (score <= 5) return { level: 'medium', text: '强度: 中' };
+                return { level: 'strong', text: '强度: 强' };
+            },
+
+            updateStrength(password) {
+                const strength = this.evaluateStrength(password);
+                this.elements.strengthBar.className = 'strength-bar-fill ' + strength.level;
+                this.elements.strengthText.textContent = strength.text;
+            },
+
+            async copy() {
+                const text = this.elements.display.textContent;
+                if (!text || text === '点击生成密码') {
+                    Toast.show('请先生成密码', 'warning');
+                    return;
+                }
+
+                try {
+                    await navigator.clipboard.writeText(text);
+                    Toast.show('已复制到剪贴板', 'success');
+                } catch (err) {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    Toast.show('已复制到剪贴板', 'success');
+                }
+            }
+        };
+
+        // ==================== 随机抽奖 ====================
+        const RandomDraw = {
+            elements: {},
+            isDrawing: false,
+
+            init() {
+                this.elements = {
+                    input: document.getElementById('participantsInput'),
+                    drawCount: document.getElementById('drawCount'),
+                    participantCount: document.getElementById('participantCount'),
+                    drawBtn: document.getElementById('drawBtn'),
+                    results: document.getElementById('drawResults')
+                };
+
+                this.bindEvents();
+            },
+
+            bindEvents() {
+                this.elements.input.addEventListener('input', () => this.updateCount());
+                this.elements.drawBtn.addEventListener('click', () => this.draw());
+
+                // 快捷键
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey && e.key === 'Enter' && App.currentTool === 'draw') {
+                        e.preventDefault();
+                        this.draw();
+                    }
+                });
+            },
+
+            updateCount() {
+                const names = this.getParticipants();
+                this.elements.participantCount.value = names.length;
+            },
+
+            getParticipants() {
+                return this.elements.input.value
+                    .split('\n')
+                    .map(name => name.trim())
+                    .filter(name => name.length > 0);
+            },
+
+            async draw() {
+                if (this.isDrawing) return;
+
+                const participants = this.getParticipants();
+                const count = parseInt(this.elements.drawCount.value);
+
+                if (participants.length === 0) {
+                    Toast.show('请输入参与者名单', 'warning');
+                    return;
+                }
+
+                if (count > participants.length) {
+                    Toast.show('抽取人数不能大于参与人数', 'error');
+                    return;
+                }
+
+                if (count < 1) {
+                    Toast.show('抽取人数至少为1', 'warning');
+                    return;
+                }
+
+                this.isDrawing = true;
+                this.elements.drawBtn.disabled = true;
+                this.elements.drawBtn.textContent = '🎲 抽奖中...';
+                this.elements.results.innerHTML = '';
+
+                // 洗牌动画
+                const shuffled = [...participants];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+
+                const winners = shuffled.slice(0, count);
+
+                // 延迟显示结果，增加悬念
+                for (let i = 0; i < winners.length; i++) {
+                    await this.delay(600);
+                    this.showResult(winners[i], i + 1);
+                }
+
+                await this.delay(300);
+                Toast.show(`抽奖完成！共抽取 ${count} 名幸运儿`, 'success');
+
+                this.isDrawing = false;
+                this.elements.drawBtn.disabled = false;
+                this.elements.drawBtn.textContent = '🎯 开始抽奖';
+            },
+
+            showResult(name, rank) {
+                const item = document.createElement('div');
+                item.className = 'result-item';
+                item.innerHTML = `
+                    <div class="result-rank">第 ${rank} 名</div>
+                    <div class="result-name">${this.escapeHtml(name)}</div>
+                `;
+                this.elements.results.appendChild(item);
+            },
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            },
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        };
+
+        // ==================== 初始化 ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            App.init();
         });
-
-        function getSelectedChars() {
-            let chars = '';
-            if (uppercase.checked) chars += CHAR_SETS.uppercase;
-            if (lowercase.checked) chars += CHAR_SETS.lowercase;
-            if (numbers.checked) chars += CHAR_SETS.numbers;
-            if (symbols.checked) chars += CHAR_SETS.symbols;
-            return chars;
-        }
-
-        function generatePassword() {
-            const chars = getSelectedChars();
-            if (!chars) {
-                errorMsg.classList.add('show');
-                return null;
-            }
-            errorMsg.classList.remove('show');
-
-            const length = parseInt(lengthSlider.value);
-            const array = new Uint32Array(length);
-            crypto.getRandomValues(array);
-
-            let password = '';
-            for (let i = 0; i < length; i++) {
-                password += chars[array[i] % chars.length];
-            }
-            return password;
-        }
-
-        function evaluateStrength(password) {
-            if (!password) return { level: '', text: '' };
-            
-            let score = 0;
-            if (password.length >= 8) score++;
-            if (password.length >= 12) score++;
-            if (password.length >= 16) score++;
-            if (/[A-Z]/.test(password)) score++;
-            if (/[a-z]/.test(password)) score++;
-            if (/[0-9]/.test(password)) score++;
-            if (/[^A-Za-z0-9]/.test(password)) score++;
-
-            if (score <= 3) return { level: 'weak', text: '强度: 弱' };
-            if (score <= 5) return { level: 'medium', text: '强度: 中' };
-            return { level: 'strong', text: '强度: 强' };
-        }
-
-        function updateStrength(password) {
-            const strength = evaluateStrength(password);
-            strengthBar.className = 'strength-bar' + (strength.level ? ' ' + strength.level : '');
-            strengthText.textContent = strength.text;
-        }
-
-        generateBtn.addEventListener('click', () => {
-            const password = generatePassword();
-            if (password) {
-                passwordDisplay.textContent = password;
-                updateStrength(password);
-            }
-        });
-
-        copyBtn.addEventListener('click', async () => {
-            const text = passwordDisplay.textContent;
-            if (!text || text === '点击生成密码') return;
-            
-            try {
-                await navigator.clipboard.writeText(text);
-                showToast('已复制到剪贴板');
-            } catch (err) {
-                const textarea = document.createElement('textarea');
-                textarea.value = text;
-                textarea.style.position = 'fixed';
-                textarea.style.opacity = '0';
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                showToast('已复制到剪贴板');
-            }
-        });
-
-        function showToast(message) {
-            toast.textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 2000);
-        }
-
-        // 初始生成一个密码
-        const initialPassword = generatePassword();
-        if (initialPassword) {
-            passwordDisplay.textContent = initialPassword;
-            updateStrength(initialPassword);
-        }
     </script>
 </body>
 </html>
